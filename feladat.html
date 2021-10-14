@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feladat</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <style>
+        body{
+            font-family: Georgia, 'Times New Roman', Times, serif;
+        }
+
+        .reszlet_cim, .reszlet_ev, .reszlet_szer, .reszlet_muf{
+            margin: 1em;
+        }
+
+        .reszletheader{
+            color: dodgerblue;
+            font-weight: bold;
+        }
+
+        .nomargin{
+            margin: 0px;
+        }
+
+        #hiba{
+            color: red;
+            font-weight: bold;
+        }
+        
+        #kereso{
+            display: none;
+            padding: 5px;
+            margin-bottom: 5px;
+            border: 1px solid black;
+            display: none;
+        }
+
+        #erreszurve{
+            font-weight: bold;
+            color: blue;
+        }
+
+        #mozik > div, #kereso{
+            padding: 8px;
+            border-radius: 10px;
+        }
+
+        #mozik > div:nth-child(odd){
+            background-color: lightgoldenrodyellow;
+        }
+        
+        a{
+            text-decoration: underline;
+        }
+
+        a:hover{
+            font-weight: bold;
+            color: darkviolet;
+        }
+
+        .btn{
+            background-color: lightgrey;
+            border: 2px solid gray;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('gomb').addEventListener('click', () => {
+                lekerdezes();
+            });
+
+            document.getElementById('reset').addEventListener('click', () => {
+                reset();
+            });
+        });
+
+        function lekerdezes(szuro, kategoria)
+        {           
+            document.getElementById("toltes").innerHTML = "Töltés...";
+            document.getElementById('gomb').style.display = 'none';
+
+            fetch("movies.json").then((data) => {
+                if (data.ok){
+                    return data.json(); 
+                }else{
+                    return Promise.reject(new Error(data.status + " " + data.statusText));
+                }
+            }).then(adat => {    
+
+                // szűrés
+                if (typeof szuro !== 'undefined')
+                {
+                    if (kategoria == "szereplo") {
+                        adat = adat.filter(a => a.cast.includes(szuro));
+                    }else{
+                        // máskülönben csak műfaj adható meg
+                        adat = adat.filter(a => a.genres.includes(szuro));
+                    }
+                }
+
+                let mozik = document.getElementById("mozik");
+                adat.sort((a, b) => {
+                    return b.year - a.year;
+                }).forEach(film => {
+                    let sor = document.createElement('div');
+                    mozik.appendChild(sor);
+                    sor.innerHTML = film.title + " (" + film.year + ")";
+                    sor.addEventListener('click', (e) => {
+
+                        // név
+                        let nev = document.createElement('div');
+                        nev.classList.add("reszlet_cim");
+                        sor.appendChild(nev);
+                        nev.innerHTML = "<h4 class='reszletheader nomargin'>Cím:</h4>" + film.title;
+                        nev.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                        });
+
+                        // kiadási év
+                        let ev = document.createElement('div');
+                        ev.classList.add("reszlet_ev");
+                        sor.appendChild(ev);
+                        ev.innerHTML = "<h4 class='reszletheader nomargin'>Kiadási év:</h4>" + film.year;
+                        ev.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                        });
+
+                        // szereplők
+                        let szereplokCim = document.createElement('div');
+                        szereplokCim.classList.add("reszlet_szer");
+                        sor.appendChild(szereplokCim);
+                        szereplokCim.innerHTML += "<h4 class='reszletheader nomargin'>Szereplők</h4>";
+                        film.cast.forEach(szinesz => {
+                            let szereplo = document.createElement('a');
+                            szereplo.setAttribute('href', '');
+                            szereplo.innerHTML = szinesz + "<br>";
+                            szereplokCim.appendChild(szereplo);
+
+                            // szereplő nevére kattintáskor
+                            szereplo.addEventListener('click', (e) => {
+                                szures(szinesz, "szereplo");
+                                e.preventDefault();
+                                e.stopPropagation();
+                            });
+                        });
+
+                        // műfajok
+                        let mufajok = document.createElement('div');
+                        mufajok.classList.add("reszlet_muf");
+                        sor.appendChild(mufajok);
+                        mufajok.innerHTML += "<h4 class='reszletheader nomargin'>Műfajok</h4>";
+                        film.genres.forEach(mufaj => {
+                            let genre = document.createElement('a');
+                            genre.setAttribute('href', '');
+                            genre.innerHTML = mufaj + "<br>";
+                            mufajok.appendChild(genre);
+
+                            // műfaj nevére kattintáskor
+                            genre.addEventListener('click', (e) => {
+                                szures(mufaj, "mufaj");
+                                e.preventDefault();
+                                e.stopPropagation();
+                            });
+                        });
+                    });
+                    document.getElementById("toltes").innerHTML = "";
+                });
+            }).catch(e => { 
+                document.getElementById("hiba").innerHTML = e;
+                document.getElementById("toltes").innerHTML = "";
+            });
+        }
+        
+        function szures(szuro, kategoria)
+        {
+            // lista ürítése
+            document.getElementById("mozik").innerHTML = "";
+            // szűrőblokk megjelenítése
+            if (typeof szuro !== 'undefined') {
+                document.getElementById('kereso').style.display = 'block';
+            }
+            document.getElementById('erreszurve').innerHTML = szuro;
+            lekerdezes(szuro, kategoria);
+        }
+
+        function reset()
+        {
+            document.getElementById('kereso').style.display = 'none';
+            szures();
+        }
+    </script>
+</head>
+<body>
+    <div class="container w-75">
+        <div id="kereso">
+            <span>
+                Szűrés a következőre: <span id="erreszurve"></span>
+            </span>
+            <span>
+                <button id="reset" class="btn">Szűrő törlése</button>
+            </span>
+        </div>
+        
+        <button id="gomb" class="btn">Betöltés</button>
+        <div id="mozik"></div>
+        <div id="toltes"></div>
+        <div id="hiba"></div>
+    </div>
+</body>
+</html>
